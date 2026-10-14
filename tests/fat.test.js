@@ -58,5 +58,11 @@ test('increasing fat thickens the attached shell; measurements and input extreme
     assert.ok(layers.fat.geometry.attributes.normal.array.every(Number.isFinite));
   }
   layers.show(['fat']); assert.equal(layers.skin.visible, false); assert.equal(layers.fat.visible, true);
+  for (const selection of [['fat'], ['fat', 'organs'], ['fat', 'visceral', 'body', 'muscles']]) {
+    layers.show(selection);
+    assert.equal(layers.fat.material.opacity, 1);
+    assert.equal(layers.fat.material.transparent, false);
+    assert.equal(layers.fat.material.depthWrite, true);
+  }
   layers.show([]); assert.equal(layers.fat.visible, false);
 });

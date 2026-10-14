@@ -28,7 +28,7 @@ export function createBodyLayers(source) {
   fatGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(base.count * 6), 3));
   fatGeometry.setIndex(shellIndices);
   const skinMaterial = new THREE.MeshStandardMaterial({ color: '#c9b19a', roughness: .76 });
-  const fatMaterial = new THREE.MeshStandardMaterial({ color: '#efbc52', roughness: .8, transparent: true, opacity: .9, side: THREE.FrontSide, depthWrite: false });
+  const fatMaterial = new THREE.MeshStandardMaterial({ color: '#efbc52', roughness: .8, transparent: false, opacity: 1, side: THREE.FrontSide, depthWrite: true });
   const skin = new THREE.Mesh(geometry, skinMaterial), fat = new THREE.Mesh(fatGeometry, fatMaterial);
   skin.userData.type = 'body'; fat.userData.type = 'fat';
   const group = new THREE.Group(); group.add(skin, fat);
@@ -78,9 +78,9 @@ export function createBodyLayers(source) {
     },
     show(layers) {
       skin.visible = layers.includes('body'); fat.visible = layers.includes('fat');
-      const mixed = layers.some(layer => ['skeleton', 'muscles', 'organs', 'fat'].includes(layer));
+      const mixed = layers.some(layer => ['skeleton', 'muscles', 'organs', 'fat', 'visceral'].includes(layer));
       skinMaterial.transparent = mixed; skinMaterial.opacity = mixed ? .10 : 1; skinMaterial.depthWrite = !mixed;
-      fatMaterial.opacity = layers.some(layer => ['skeleton', 'muscles', 'organs'].includes(layer)) ? .18 : .90;
+      fatMaterial.opacity = 1;
     },
   };
 }

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { createBodyLayers } from './fat.js';
+import registration from './organ-registration.json' with { type: 'json' };
 
 export const anatomyLayers = Object.freeze({
   body: ['anatomy', 'surface'],
@@ -9,7 +10,8 @@ export const anatomyLayers = Object.freeze({
   skeleton: ['anatomy'],
   muscles: ['anatomy'],
   combined: ['anatomy'],
-  organs: ['digestive', 'respiratory'],
+  organs: ['anatomy', 'digestive', 'respiratory'],
+  visceral: ['anatomy', 'visceral'],
 });
 
 export function layerAssets(layer) {
@@ -45,11 +47,14 @@ export function createAnatomyAtlas(scene) {
       }).then(gltf => {
         const model = new THREE.Group();
         model.add(gltf.scene);
-        if (name === 'anatomy') {
+        if (name === 'anatomy' || name === 'visceral') {
           gltf.scene.rotation.set(Math.PI / 2, 0, 0);
-          referenceBoxes.set(name, new THREE.Box3().setFromObject(model));
+          if (name === 'anatomy') referenceBoxes.set(name, new THREE.Box3().setFromObject(model));
         }
-        if (name === 'organ-reference') referenceBoxes.set('organs', new THREE.Box3().setFromObject(model));
+        if (['digestive', 'respiratory'].includes(name)) {
+          gltf.scene.matrixAutoUpdate = false;
+          gltf.scene.matrix.fromArray(registration.matrix);
+        }
         if (name === 'surface') {
           const source = gltf.scene.children.find(node => node.isMesh);
           bodyLayers = createBodyLayers(source.geometry);
@@ -70,6 +75,7 @@ export function createAnatomyAtlas(scene) {
             material.roughness = .65;
             if (node.userData.type === 'bone') material.color.set('#e5d9b7');
             if (node.userData.type === 'muscle') material.color.set('#ad5548');
+            if (name === 'visceral') { material.color.set('#d57e2d'); material.side = THREE.DoubleSide; }
             materials.set(key, material);
             return material;
           });
@@ -88,7 +94,6 @@ export function createAnatomyAtlas(scene) {
     async show(layer, height, onProgress) {
       const assets = layerAssets(layer);
       if (assets.length) {
-        if ([layer].flat().includes('organs')) await load('organ-reference', onProgress);
         await Promise.all(assets.map(name => load(name, onProgress)));
       }
       for (const [name, model] of models) {
@@ -106,7 +111,7 @@ export function createAnatomyAtlas(scene) {
     },
     setHeight(height) {
       for (const [name, model] of models) {
-        const box = referenceBoxes.get(['anatomy', 'surface'].includes(name) ? 'anatomy' : 'organs');
+        const box = referenceBoxes.get('anatomy');
         if (!box) continue;
         const transform = atlasTransform(box, height);
         model.scale.setScalar(transform.scale);

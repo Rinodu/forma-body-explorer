@@ -16,7 +16,8 @@ test('anatomy modes isolate bones, muscles and organs', () => {
   assert.equal(visibleAnatomyType('combined', 'bone'), true);
   assert.equal(visibleAnatomyType('combined', 'muscle'), true);
   assert.equal(visibleAnatomyType('organs', 'bone'), false);
-  assert.deepEqual(layerAssets('organs'), ['digestive', 'respiratory']);
+  assert.deepEqual(layerAssets('organs'), ['anatomy', 'digestive', 'respiratory']);
+  assert.deepEqual(layerAssets('visceral'), ['anatomy', 'visceral']);
   assert.deepEqual(layerAssets(['skeleton', 'muscles', 'fat', 'organs']), ['anatomy', 'surface', 'digestive', 'respiratory']);
   assert.deepEqual(layerAssets(['fat']), ['anatomy', 'surface']);
   assert.deepEqual(layerAssets([]), []);
