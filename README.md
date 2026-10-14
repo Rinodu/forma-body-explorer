@@ -2,6 +2,10 @@
 
 Browser-only body composition illustration, built with Three.js, Tesseract.js, and Vite. Designed for GitHub Pages. Indonesian interface, responsive layout.
 
+Includes imported GLB anatomy models with **bones only, muscles only, bones + muscles, and digestive/respiratory organs**. The default is bones + muscles. These reference meshes scale uniformly to the entered height; body composition and circumference inputs only change the separate **Siluet tubuh** illustration. Models load on demand and remain cached for the session. Loading failures retain the previous view with a retry action.
+
+Model sources: BodyParts3D / Z-Anatomy, adapted by Kinetra and Vanatome. Preserve [model attributions and licenses](public/models/ATTRIBUTION.md); see linked source manifests and source notices for component-level terms. The anatomy bundle uses Three.js's included meshopt decoder, with no additional dependency.
+
 ## Use
 
 Upload a JPG, PNG, or WebP report (up to 15 MB), review the extracted numbers, enter missing values, then apply. Or enter weight, height, fat percentage, optional skeletal muscle mass and circumferences manually. Rotate, zoom, switch camera views, inspect the mesh, or export a labeled PNG.

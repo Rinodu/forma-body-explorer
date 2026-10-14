@@ -11,6 +11,45 @@ let source = 'demo';
 let reportUrl;
 let uploadVersion = 0;
 let processing = false;
+let activeLayer = 'body';
+let retryLayer = 'combined';
+
+function updateLayerCaption() {
+  const atlas = activeLayer !== 'body';
+  $('#model-label').textContent = atlas ? `ATLAS REFERENSI · ${$('#anatomy-layer').selectedOptions[0].textContent.toUpperCase()}` : source === 'demo' ? 'DATA DEMO SINTETIS' : 'DATA INPUT · TELAH DITERAPKAN';
+  $('.view-caption small').textContent = atlas ? 'Skala tinggi input · bukan anatomi pribadi' : 'Proporsi perkiraan · bukan pemindaian tubuh';
+  $('.estimate').textContent = atlas ? 'Atlas referensi' : 'Ilustrasi estimasi';
+}
+
+async function switchLayer() {
+  if (!viewer) { $('#anatomy-status').textContent = 'Atlas membutuhkan WebGL yang aktif.'; $('#anatomy-layer').disabled = true; return; }
+  const select = $('#anatomy-layer');
+  const requested = select.value;
+  retryLayer = requested;
+  select.disabled = true;
+  $('#capture').disabled = true;
+  $('#anatomy-retry').hidden = true;
+  $('#anatomy-status').textContent = 'Memuat model 3D…';
+  try {
+    await viewer.setLayer(requested, (name, percent) => {
+      $('#anatomy-status').textContent = `Memuat ${ { anatomy: 'tulang & otot', 'organ-reference': 'referensi organ', digestive: 'pencernaan', respiratory: 'pernapasan' }[name]}…${percent == null ? '' : ` ${percent}%`}`;
+    });
+    activeLayer = requested;
+    $('#anatomy-status').textContent = requested === 'body' ? 'Siluet estimasi mengikuti angka komposisi dan ukuran lingkar.' : requested === 'organs' ? 'Atlas pencernaan & pernapasan · hanya skala tinggi, bukan organ pribadi.' : 'Atlas anatomi referensi · hanya skala tinggi, bukan bentuk tubuh pribadi.';
+  } catch (error) {
+    select.value = activeLayer;
+    await viewer.setLayer(activeLayer);
+    $('#anatomy-status').textContent = 'Atlas belum berhasil dimuat. Periksa koneksi, lalu coba lagi. Tampilan sebelumnya dipertahankan.';
+    $('#anatomy-retry').hidden = false;
+    console.error(error);
+  } finally {
+    select.disabled = false;
+    $('#capture').disabled = false;
+    updateLayerCaption();
+  }
+}
+$('#anatomy-layer').addEventListener('change', switchLayer);
+$('#anatomy-retry').addEventListener('click', () => { $('#anatomy-layer').value = retryLayer; switchLayer(); });
 
 function fill(data, clear = false) {
   for (const key of Object.keys(demo)) {
@@ -33,7 +72,7 @@ function apply() {
     $('#fat-bar').style.flex = `0 0 ${body.fat}%`;
     $('#height-label').textContent = `${format(body.height)} cm`;
     $('#source-tag').textContent = source === 'demo' ? 'DEMO' : 'INPUT';
-    $('#model-label').textContent = source === 'demo' ? 'DATA DEMO SINTETIS' : 'DATA INPUT · TELAH DITERAPKAN';
+    updateLayerCaption();
     const count = ['chest', 'waist', 'hip'].filter(key => body[key] != null).length;
     $('#precision-title').textContent = count ? 'Siluet disesuaikan' : 'Proporsi perkiraan';
     $('#precision-copy').textContent = count ? `${count} ukuran lingkar digunakan untuk menyesuaikan siluet. Bentuk dan distribusi jaringan tetap estimasi, belum tervalidasi terhadap body scan.` : 'Berat, tinggi, dan lemak total belum menentukan bentuk tubuh atau letak lemak seseorang.';
@@ -78,7 +117,13 @@ $('#capture').addEventListener('click', () => {
     context.fillStyle = '#14292d'; context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0);
     context.font = `${Math.max(14, canvas.width / 45)}px sans-serif`; context.fillStyle = '#cddbd4';
-    context.fillText('FORMA · ILUSTRASI ESTIMASI · BUKAN BODY SCAN', 20, canvas.height - 20);
+    context.fillText(activeLayer === 'body' ? 'FORMA · ILUSTRASI ESTIMASI · BUKAN BODY SCAN' : `FORMA · ATLAS REFERENSI · ${$('#anatomy-layer').selectedOptions[0].textContent}`, 20, canvas.height - 36);
+    if (activeLayer !== 'body') {
+      context.font = `${Math.max(10, canvas.width / 60)}px sans-serif`;
+      context.fillText('BodyParts3D / Z-Anatomy · Kinetra / Vanatome', 20, canvas.height - 16);
+      context.font = `${Math.max(8, canvas.width / 75)}px sans-serif`;
+      context.fillText('CC BY-SA 2.1 JP & 4.0 · sources: github.com/Rinodu/forma-body-explorer', 20, canvas.height - 3);
+    }
     canvas.toBlob(blob => {
       if (!blob) return;
       const a = document.createElement('a'); a.download = 'forma-ilustrasi.png'; a.href = URL.createObjectURL(blob);
@@ -163,3 +208,4 @@ for (const name of ['dragenter', 'dragover']) $('#dropzone').addEventListener(na
 $('#dropzone').addEventListener('dragleave', () => $('#dropzone').classList.remove('dragging'));
 $('#dropzone').addEventListener('drop', event => { event.preventDefault(); $('#dropzone').classList.remove('dragging'); readReport(event.dataTransfer.files[0]); });
 fill(demo); apply();
+switchLayer();

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { dimensions } from './data.js';
+import { createAnatomyAtlas } from './anatomy.js';
 
 export function createViewer(container) {
   const scene = new THREE.Scene();
@@ -28,7 +29,9 @@ export function createViewer(container) {
     scene.add(light);
   }
   const group = new THREE.Group();
+  group.visible = false;
   scene.add(group);
+  const atlas = createAnatomyAtlas(scene);
   const skin = new THREE.MeshStandardMaterial({ color: 0xcec5ae, roughness: .53, metalness: .13 });
   const floor = new THREE.Mesh(new THREE.CylinderGeometry(.47, .47, .025, 80), new THREE.MeshStandardMaterial({ color: 0x284344, roughness: .8, metalness: .3 }));
   floor.position.y = -.025;
@@ -104,6 +107,7 @@ export function createViewer(container) {
     }
     floor.scale.setScalar(h / 1.75);
     ring.scale.setScalar(h / 1.75);
+    atlas.setHeight(h);
     setView('front');
   }
   function setView(view) {
@@ -120,5 +124,15 @@ export function createViewer(container) {
   });
   observer.observe(container);
   renderer.setAnimationLoop(() => { controls.update(); renderer.render(scene, camera); });
-  return { update, setView, rotate: enabled => { controls.autoRotate = enabled; }, wireframe: enabled => { skin.wireframe = enabled; }, capture: () => { renderer.render(scene, camera); return renderer.domElement; } };
+  return {
+    update, setView,
+    async setLayer(layer, onProgress) {
+      await atlas.show(layer, modelHeight, onProgress);
+      atlas.setHeight(modelHeight);
+      group.visible = layer === 'body';
+    },
+    rotate: enabled => { controls.autoRotate = enabled; },
+    wireframe: enabled => { skin.wireframe = enabled; atlas.wireframe(enabled); },
+    capture: () => { renderer.render(scene, camera); return renderer.domElement; },
+  };
 }
