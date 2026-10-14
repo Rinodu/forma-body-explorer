@@ -70,6 +70,8 @@ export function createAnatomyAtlas(scene) {
         model.traverse(node => {
           if (!node.isMesh) return;
           if (name === 'surface') { node.material.wireframe = wireframe; return; }
+          if (['digestive', 'respiratory'].includes(name)) node.userData.type = 'organ';
+          if (name === 'visceral') node.userData.type = 'visceral';
           const styled = (Array.isArray(node.material) ? node.material : [node.material]).map(source => {
             const key = `${source.uuid}:${node.userData.type ?? 'organ'}`;
             if (materials.has(key)) return materials.get(key);

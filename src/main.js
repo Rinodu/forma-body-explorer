@@ -112,6 +112,16 @@ document.querySelectorAll('[data-view]').forEach(button => button.addEventListen
   $('#rotate').setAttribute('aria-pressed', 'false');
   document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b === button));
 }));
+function updateSection() {
+  const enabled = $('#section-enabled').checked;
+  const percent = Number($('#section-height').value);
+  $('#section-height').disabled = !enabled;
+  $('#section-label').textContent = `${percent}% tinggi tubuh`;
+  $('#section-height').setAttribute('aria-valuetext', `${percent}% tinggi tubuh`);
+  viewer?.setSection(enabled, percent / 100);
+}
+$('#section-enabled').addEventListener('change', updateSection);
+$('#section-height').addEventListener('input', updateSection);
 for (const id of ['rotate', 'wireframe']) $(`#${id}`).addEventListener('click', event => {
   const button = event.currentTarget;
   const enabled = button.getAttribute('aria-pressed') !== 'true';
@@ -128,7 +138,7 @@ $('#capture').addEventListener('click', () => {
     context.drawImage(image, 0, 0);
     context.font = `${Math.max(14, canvas.width / 45)}px sans-serif`; context.fillStyle = '#cddbd4';
     context.font = `${Math.max(9, canvas.width / 65)}px sans-serif`;
-    context.fillText(`FORMA · ${activeLayers.map(layer => layerNames[layer]).join(' + ')} · ESTIMASI / REFERENSI`, 20, canvas.height - 36);
+    context.fillText(`FORMA${$('#section-enabled').checked ? ` · POTONGAN ${$('#section-height').value}%` : ''} · ${activeLayers.length > 3 ? `${activeLayers.length} LAPISAN` : activeLayers.map(layer => layerNames[layer]).join(' + ')} · ESTIMASI / REFERENSI`, 20, canvas.height - 36);
     if (activeLayers.length) {
       context.font = `${Math.max(10, canvas.width / 60)}px sans-serif`;
       context.fillText('BodyParts3D / Z-Anatomy · Kinetra / Vanatome', 20, canvas.height - 16);
