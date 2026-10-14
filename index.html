@@ -14,12 +14,16 @@
       <div class="workspace">
         <aside class="panel input-panel">
           <div class="section-title"><span class="step">01</span><h2>Data tubuh</h2><span id="source-tag" class="tag">DEMO</span></div>
+          <div class="input-modes" role="group" aria-label="Cara memasukkan data"><button type="button" data-input-mode="manual" aria-pressed="true">Input manual</button><button type="button" data-input-mode="upload" aria-pressed="false">Upload laporan</button></div>
+          <p id="manual-help" class="input-help">Isi berat, tinggi, dan persentase lemak langsung di bawah. Otot rangka dan ukuran lingkar boleh dikosongkan.</p>
+          <div id="upload-input" hidden>
           <label class="upload" id="dropzone"><input type="file" id="file" accept="image/png,image/jpeg,image/webp" /><span class="upload-icon">↥</span><strong>Upload laporanmu</strong><span>Foto / screenshot · JPG, PNG, WebP · maks. 15 MB</span><small>Pembacaan gambar berjalan di browser</small></label>
           <div id="upload-preview" hidden><img id="report-preview" alt="Pratinjau laporan yang dipilih"/><button id="remove-report" type="button">Hapus gambar ×</button></div>
           <p id="ocr-status" role="status" aria-live="polite">Isi manual, atau upload gambar untuk membaca angkanya.</p>
           <details id="ocr-details" hidden><summary>Teks hasil pembacaan</summary><pre id="ocr-text"></pre></details>
+          </div>
           <form id="body-form">
-            <p class="form-label">TINJAU & KONFIRMASI</p>
+            <p class="form-label" id="input-form-title">INPUT MANUAL · ANGKA DEMO BISA DIGANTI</p>
             <div class="fields">
               <label>Berat badan <span>kg</span><input name="weight" type="number" min="25" max="350" step="0.1" required /></label>
               <label>Tinggi badan <span>cm</span><input name="height" type="number" min="120" max="230" step="0.1" required /></label>

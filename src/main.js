@@ -57,6 +57,14 @@ function fill(data, clear = false) {
     else if (clear) form.elements[key].value = key === 'shape' ? 'neutral' : '';
   }
 }
+document.querySelectorAll('[data-input-mode]').forEach(button => button.addEventListener('click', () => {
+  const manual = button.dataset.inputMode === 'manual';
+  $('#upload-input').hidden = manual;
+  $('#manual-help').hidden = !manual;
+  $('#input-form-title').textContent = manual ? 'INPUT MANUAL' : 'TINJAU & KOREKSI ANGKA';
+  document.querySelectorAll('[data-input-mode]').forEach(b => b.setAttribute('aria-pressed', String(b === button)));
+  if (manual) form.elements.weight.focus();
+}));
 function apply() {
   $('#form-error').textContent = '';
   try {
