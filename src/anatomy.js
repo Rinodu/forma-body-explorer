@@ -4,6 +4,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 export const anatomyLayers = Object.freeze({
   body: [],
+  fat: [],
   skeleton: ['anatomy'],
   muscles: ['anatomy'],
   combined: ['anatomy'],
@@ -11,6 +12,7 @@ export const anatomyLayers = Object.freeze({
 });
 
 export function layerAssets(layer) {
+  if (Array.isArray(layer)) return [...new Set(layer.flatMap(layerAssets))];
   if (!Object.hasOwn(anatomyLayers, layer)) throw new Error('Lapisan anatomi tidak dikenal.');
   return anatomyLayers[layer];
 }
@@ -21,6 +23,7 @@ export function atlasTransform(box, height) {
 }
 
 export function visibleAnatomyType(layer, type) {
+  if (Array.isArray(layer)) return layer.some(value => visibleAnatomyType(value, type));
   return type === 'bone' ? ['skeleton', 'combined'].includes(layer) : type === 'muscle' && ['muscles', 'combined'].includes(layer);
 }
 
@@ -36,7 +39,7 @@ export function createAnatomyAtlas(scene) {
   function load(name, onProgress) {
     if (!cache.has(name)) {
       const pending = loader.loadAsync(`${import.meta.env.BASE_URL}models/${name}.glb`, event => {
-        onProgress?.(name, event.total ? Math.round(event.loaded / event.total * 100) : null);
+        onProgress?.(name, event.total ? Math.min(100, Math.round(event.loaded / event.total * 100)) : null);
       }).then(gltf => {
         const model = new THREE.Group();
         model.add(gltf.scene);
@@ -76,7 +79,7 @@ export function createAnatomyAtlas(scene) {
     async show(layer, height, onProgress) {
       const assets = layerAssets(layer);
       if (assets.length) {
-        if (layer === 'organs') await load('organ-reference', onProgress);
+        if ([layer].flat().includes('organs')) await load('organ-reference', onProgress);
         await Promise.all(assets.map(name => load(name, onProgress)));
       }
       for (const [name, model] of models) {

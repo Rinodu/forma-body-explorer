@@ -2,7 +2,9 @@
 
 Browser-only body composition illustration, built with Three.js, Tesseract.js, and Vite. Designed for GitHub Pages. Indonesian interface, responsive layout.
 
-Includes imported GLB anatomy models with **bones only, muscles only, bones + muscles, and digestive/respiratory organs**. The default is bones + muscles. These reference meshes scale uniformly to the entered height; body composition and circumference inputs only change the separate **Siluet tubuh** illustration. Models load on demand and remain cached for the session. Loading failures retain the previous view with a retry action.
+Includes imported GLB anatomy models with **bones only, muscles only, bones + muscles, and digestive/respiratory organs**. The default is bones + muscles. These reference meshes scale uniformly to the entered height; body composition and circumference inputs change the separate **Siluet tubuh** and schematic **Lemak** illustrations. Models load on demand and remain cached for the session. Loading failures retain the previous view with a retry action.
+
+Layers are independent checkboxes: bones, muscles, organs, fat illustration, and body silhouette. Uncheck every other layer to view fat alone, or combine any subset. Selecting none intentionally hides every model. The fat layer consists of generic hollow subcutaneous shells around the torso, upper arms and thighs, with schematic thickness influenced by input body fat percentage. It is not a measured regional fat map, does not show visceral fat, and is not calibrated to the anatomical reference meshes. Multiple sources share height scale but are not individually co-registered. The silhouette becomes translucent when combined with other layers.
 
 Model sources: BodyParts3D / Z-Anatomy, adapted by Kinetra and Vanatome. Preserve [model attributions and licenses](public/models/ATTRIBUTION.md); see linked source manifests and source notices for component-level terms. The anatomy bundle uses Three.js's included meshopt decoder, with no additional dependency.
 

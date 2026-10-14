@@ -11,45 +11,46 @@ let source = 'demo';
 let reportUrl;
 let uploadVersion = 0;
 let processing = false;
-let activeLayer = 'body';
-let retryLayer = 'combined';
+let activeLayers = ['body'];
+let retryLayers = ['skeleton', 'muscles'];
+const layerNames = { skeleton: 'Tulang', muscles: 'Otot', organs: 'Organ', fat: 'Lemak estimasi', body: 'Siluet' };
+const layerCheckboxes = () => [...document.querySelectorAll('#anatomy-layers input')];
 
 function updateLayerCaption() {
-  const atlas = activeLayer !== 'body';
-  $('#model-label').textContent = atlas ? `ATLAS REFERENSI · ${$('#anatomy-layer').selectedOptions[0].textContent.toUpperCase()}` : source === 'demo' ? 'DATA DEMO SINTETIS' : 'DATA INPUT · TELAH DITERAPKAN';
-  $('.view-caption small').textContent = atlas ? 'Skala tinggi input · bukan anatomi pribadi' : 'Proporsi perkiraan · bukan pemindaian tubuh';
-  $('.estimate').textContent = atlas ? 'Atlas referensi' : 'Ilustrasi estimasi';
+  const estimated = activeLayers.some(layer => ['fat', 'body'].includes(layer));
+  $('#model-label').textContent = activeLayers.length ? activeLayers.map(layer => layerNames[layer]).join(' + ').toUpperCase() : 'TIDAK ADA LAPISAN DIPILIH';
+  $('.view-caption small').textContent = estimated ? 'Lemak / siluet skematis · bukan peta jaringan pribadi' : 'Atlas referensi · bukan anatomi pribadi';
+  $('.estimate').textContent = estimated ? 'Ilustrasi estimasi' : 'Atlas referensi';
 }
 
 async function switchLayer() {
-  if (!viewer) { $('#anatomy-status').textContent = 'Atlas membutuhkan WebGL yang aktif.'; $('#anatomy-layer').disabled = true; return; }
-  const select = $('#anatomy-layer');
-  const requested = select.value;
-  retryLayer = requested;
-  select.disabled = true;
+  if (!viewer) { $('#anatomy-status').textContent = 'Atlas membutuhkan WebGL yang aktif.'; $('#anatomy-layers').disabled = true; return; }
+  const requested = layerCheckboxes().filter(input => input.checked).map(input => input.value);
+  retryLayers = requested;
+  $('#anatomy-layers').disabled = true;
   $('#capture').disabled = true;
   $('#anatomy-retry').hidden = true;
   $('#anatomy-status').textContent = 'Memuat model 3D…';
   try {
-    await viewer.setLayer(requested, (name, percent) => {
+    await viewer.setLayers(requested, (name, percent) => {
       $('#anatomy-status').textContent = `Memuat ${ { anatomy: 'tulang & otot', 'organ-reference': 'referensi organ', digestive: 'pencernaan', respiratory: 'pernapasan' }[name]}…${percent == null ? '' : ` ${percent}%`}`;
     });
-    activeLayer = requested;
-    $('#anatomy-status').textContent = requested === 'body' ? 'Siluet estimasi mengikuti angka komposisi dan ukuran lingkar.' : requested === 'organs' ? 'Atlas pencernaan & pernapasan · hanya skala tinggi, bukan organ pribadi.' : 'Atlas anatomi referensi · hanya skala tinggi, bukan bentuk tubuh pribadi.';
+    activeLayers = requested;
+    $('#anatomy-status').textContent = !requested.length ? 'Semua lapisan disembunyikan. Centang lapisan untuk menampilkannya.' : requested.includes('fat') ? 'Kuning: ilustrasi lemak bawah kulit pada badan, lengan atas, dan paha. Ketebalan skematis mengikuti % lemak; bukan peta lemak terukur atau lemak visceral. Posisi antar-model belum dikalibrasi.' : requested.includes('body') ? 'Siluet estimasi mengikuti komposisi. Atlas tulang, otot, dan organ tetap referensi; posisi antar-model belum dikalibrasi.' : 'Atlas referensi · skala tinggi input. Organ hanya pencernaan & pernapasan; gabungan antar-atlas belum dikalibrasi.';
   } catch (error) {
-    select.value = activeLayer;
-    await viewer.setLayer(activeLayer);
+    layerCheckboxes().forEach(input => { input.checked = activeLayers.includes(input.value); });
+    await viewer.setLayers(activeLayers);
     $('#anatomy-status').textContent = 'Atlas belum berhasil dimuat. Periksa koneksi, lalu coba lagi. Tampilan sebelumnya dipertahankan.';
     $('#anatomy-retry').hidden = false;
     console.error(error);
   } finally {
-    select.disabled = false;
-    $('#capture').disabled = false;
+    $('#anatomy-layers').disabled = false;
+    $('#capture').disabled = !activeLayers.length;
     updateLayerCaption();
   }
 }
-$('#anatomy-layer').addEventListener('change', switchLayer);
-$('#anatomy-retry').addEventListener('click', () => { $('#anatomy-layer').value = retryLayer; switchLayer(); });
+$('#anatomy-layers').addEventListener('change', switchLayer);
+$('#anatomy-retry').addEventListener('click', () => { layerCheckboxes().forEach(input => { input.checked = retryLayers.includes(input.value); }); switchLayer(); });
 
 function fill(data, clear = false) {
   for (const key of Object.keys(demo)) {
@@ -125,8 +126,9 @@ $('#capture').addEventListener('click', () => {
     context.fillStyle = '#14292d'; context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(image, 0, 0);
     context.font = `${Math.max(14, canvas.width / 45)}px sans-serif`; context.fillStyle = '#cddbd4';
-    context.fillText(activeLayer === 'body' ? 'FORMA · ILUSTRASI ESTIMASI · BUKAN BODY SCAN' : `FORMA · ATLAS REFERENSI · ${$('#anatomy-layer').selectedOptions[0].textContent}`, 20, canvas.height - 36);
-    if (activeLayer !== 'body') {
+    context.font = `${Math.max(9, canvas.width / 65)}px sans-serif`;
+    context.fillText(`FORMA · ${activeLayers.map(layer => layerNames[layer]).join(' + ')} · ESTIMASI / REFERENSI`, 20, canvas.height - 36);
+    if (activeLayers.some(layer => ['skeleton', 'muscles', 'organs'].includes(layer))) {
       context.font = `${Math.max(10, canvas.width / 60)}px sans-serif`;
       context.fillText('BodyParts3D / Z-Anatomy · Kinetra / Vanatome', 20, canvas.height - 16);
       context.font = `${Math.max(8, canvas.width / 75)}px sans-serif`;
