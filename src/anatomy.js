@@ -3,6 +3,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { createBodyLayers } from './fat.js';
 import registration from './organ-registration.json' with { type: 'json' };
+import { createMuscleMorph } from './morph.js';
 
 export const anatomyLayers = Object.freeze({
   body: ['anatomy', 'surface'],
@@ -39,6 +40,7 @@ export function createAnatomyAtlas(scene) {
   const referenceBoxes = new Map();
   let wireframe = false;
   let bodyData, bodyLayers;
+  let muscleMorph, appliedBodySignature;
 
   function load(name, onProgress) {
     if (!cache.has(name)) {
@@ -50,6 +52,7 @@ export function createAnatomyAtlas(scene) {
         if (name === 'anatomy' || name === 'visceral') {
           gltf.scene.rotation.set(Math.PI / 2, 0, 0);
           if (name === 'anatomy') referenceBoxes.set(name, new THREE.Box3().setFromObject(model));
+          if (name === 'anatomy') { muscleMorph = createMuscleMorph(gltf.scene); appliedBodySignature = null; }
         }
         if (['digestive', 'respiratory'].includes(name)) {
           gltf.scene.matrixAutoUpdate = false;
@@ -58,6 +61,7 @@ export function createAnatomyAtlas(scene) {
         if (name === 'surface') {
           const source = gltf.scene.children.find(node => node.isMesh);
           bodyLayers = createBodyLayers(source.geometry);
+          appliedBodySignature = null;
           model.clear(); model.add(bodyLayers.group);
           bodyLayers.group.rotation.x = Math.PI / 2;
         }
@@ -107,7 +111,11 @@ export function createAnatomyAtlas(scene) {
     updateBody(body) {
       bodyData = body;
       const reference = referenceBoxes.get('anatomy');
-      if (bodyLayers && reference) bodyLayers.update(body, reference.max.y - reference.min.y);
+      const signature = JSON.stringify(body);
+      if (!reference || signature === appliedBodySignature) return;
+      muscleMorph?.(body);
+      bodyLayers?.update(body, reference.max.y - reference.min.y);
+      appliedBodySignature = signature;
     },
     setHeight(height) {
       for (const [name, model] of models) {

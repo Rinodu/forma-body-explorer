@@ -17,9 +17,9 @@ const layerNames = { skeleton: 'Tulang', muscles: 'Otot', organs: 'Organ', fat: 
 const layerCheckboxes = () => [...document.querySelectorAll('#anatomy-layers input')];
 
 function updateLayerCaption() {
-  const estimated = activeLayers.some(layer => ['fat', 'body', 'visceral'].includes(layer));
+  const estimated = activeLayers.some(layer => ['fat', 'body', 'visceral', 'muscles'].includes(layer));
   $('#model-label').textContent = activeLayers.length ? activeLayers.map(layer => layerNames[layer]).join(' + ').toUpperCase() : 'TIDAK ADA LAPISAN DIPILIH';
-  $('.view-caption small').textContent = activeLayers.includes('visceral') ? 'Visceral: acuan mesenterium · bukan segmentasi lemak pribadi' : estimated ? 'Kulit & lemak mengikuti satu permukaan · bentuk pribadi tetap estimasi' : 'Atlas referensi · bukan anatomi pribadi';
+  $('.view-caption small').textContent = activeLayers.includes('visceral') ? 'Visceral: acuan mesenterium · bukan segmentasi lemak pribadi' : activeLayers.some(layer => ['fat', 'body'].includes(layer)) ? 'Bentuk tubuh mengikuti komposisi · anatomi pribadi tetap estimasi' : activeLayers.includes('muscles') ? 'Volume otot disesuaikan · tulang tetap acuan referensi' : 'Atlas referensi · bukan anatomi pribadi';
   $('.estimate').textContent = estimated ? 'Ilustrasi estimasi' : 'Atlas referensi';
 }
 
@@ -81,6 +81,7 @@ function apply() {
     $('#fat-bar').style.flex = `0 0 ${body.fat}%`;
     $('#height-label').textContent = `${format(body.height)} cm`;
     $('#source-tag').textContent = source === 'demo' ? 'DEMO' : 'INPUT';
+    $('#model-response').textContent = `Data diterapkan. ${activeLayers.some(layer => ['fat', 'body'].includes(layer)) ? 'Bentuk kulit dan lapisan lemak sudah diperbarui.' : 'Centang Siluet tubuh atau Lemak bawah kulit untuk melihat perubahan bentuk.'} ${body.muscle == null ? 'Massa otot kosong: otot mempertahankan bentuk referensi.' : 'Volume otot mengikuti massa otot; tulang dan organ tidak ikut digemukkan.'}`;
     updateLayerCaption();
     const count = ['chest', 'waist', 'hip'].filter(key => body[key] != null).length;
     $('#precision-title').textContent = count ? 'Siluet disesuaikan' : 'Proporsi perkiraan';

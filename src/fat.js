@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { morphParameters } from './morph.js';
 
 export function createBodyLayers(source) {
   const geometry = source.clone();
@@ -46,27 +47,36 @@ export function createBodyLayers(source) {
     group, skin, fat,
     update(body, referenceHeight = height) {
       const targetScale = body.height / 100 / referenceHeight;
-      const bmi = body.weight / (body.height / 100) ** 2;
-      const padding = height * (.025 * (Math.sqrt(bmi / 24) - 1) + .075 * (body.fat / 100 - .2));
+      const { fatGain, muscleRadius } = morphParameters(body);
       const skinPositions = geometry.attributes.position, fatPositions = fatGeometry.attributes.position;
       for (let i = 0; i < base.count; i++) {
         const u = (-base.getZ(i) - minY) / height;
-        let offset = padding * regions[i], totalWeight = 0, measuredOffset = 0;
-        if (body.muscle && ((u < .48 && u > .12) || (Math.abs(base.getX(i)) > height * .12 && u < .8))) offset += height * .006 * (body.muscle / (body.weight * .4) - 1) * regions[i];
+        const abdomen = Math.exp(-1 * ((u - .57) / .12) ** 2);
+        const trunk = Math.abs(base.getX(i)) < height * .13 && u > .43 && u < .82;
+        let offset = height * .055 * fatGain * regions[i] * (trunk ? 1 + .65 * abdomen : .7), totalWeight = 0, measuredOffset = 0;
+        if (u < .48 && u > .12) offset += height * .045 * (muscleRadius - 1);
+        else if (Math.abs(base.getX(i)) > height * .12 && u < .8 && regions[i] > .03) offset += height * .03 * (muscleRadius - 1);
         for (const ring of rings) if (body[ring.name]) {
           const weight = Math.exp(-1 * ((u - ring.u) / .05) ** 2);
           measuredOffset += weight * (body[ring.name] / 100 / targetScale - ring.circumference) / (2 * Math.PI);
           totalWeight += weight;
         }
-        if (totalWeight > .001) offset += measuredOffset / Math.max(1, totalWeight) * regions[i];
+        if (totalWeight > .001) offset = offset * (1 - Math.min(1, totalWeight)) + measuredOffset / Math.max(1, totalWeight) * regions[i];
         if (body.shape === 'feminine') offset += height * .006 * Math.exp(-1 * ((u - .49) / .065) ** 2);
         if (body.shape === 'masculine') offset += height * .004 * Math.exp(-1 * ((u - .76) / .05) ** 2);
         // shortcut: bounded offsets preserve the reference shape; individual regional anatomy needs scan calibration.
-        offset = Math.max(-.0025, Math.min(height * .035 * regions[i], offset));
+        offset = Math.max(-.004, Math.min(height * .09 * regions[i], offset));
+        const x = base.getX(i);
+        const torsoBlend = Math.exp(-1 * ((u - .63) / .17) ** 6) * Math.exp(-1 * (x / (height * .115)) ** 8);
+        // Smooth transverse expansion avoids amplifying folds in the atlas surface normals.
+        const radial = new THREE.Vector3(x / (height * .10), (base.getY(i) - .17) / (height * .065), 0).normalize();
+        const direction = new THREE.Vector3(normals.getX(i), normals.getY(i), normals.getZ(i)).lerp(radial, torsoBlend);
+        offset *= .3 + .7 * torsoBlend;
+        if (u < .5 && x * direction.x < 0) offset = Math.min(offset, Math.max(0, Math.abs(x) - .002) / Math.max(.001, Math.abs(direction.x)));
         const thinLimb = Math.abs(base.getX(i)) / height > .13 || u < .32;
-        const thickness = Math.min(height * (thinLimb ? .009 : .045), .0015 + height * .06 * body.fat / 100 * regions[i]);
+        const thickness = Math.min(height * (thinLimb ? .009 : .045) + Math.max(0, offset) * .8, .0015 + height * .045 * body.fat / 100 * regions[i] + Math.max(0, offset) * .85);
         for (let axis = 0; axis < 3; axis++) {
-          const value = base.array[i * 3 + axis] + normals.array[i * 3 + axis] * offset;
+          const value = base.array[i * 3 + axis] + direction.getComponent(axis) * offset;
           skinPositions.array[i * 3 + axis] = value;
           fatPositions.array[i * 3 + axis] = value - normals.array[i * 3 + axis] * .0008;
           fatPositions.array[(i + base.count) * 3 + axis] = value - normals.array[i * 3 + axis] * thickness;
