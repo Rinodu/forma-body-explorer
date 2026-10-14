@@ -1,8 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { dimensions } from './data.js';
 import { createAnatomyAtlas } from './anatomy.js';
-import { fatShellGeometry } from './fat.js';
 
 export function createViewer(container) {
   const scene = new THREE.Scene();
@@ -29,15 +27,7 @@ export function createViewer(container) {
     light.position.set(...position);
     scene.add(light);
   }
-  const group = new THREE.Group();
-  group.visible = false;
-  scene.add(group);
   const atlas = createAnatomyAtlas(scene);
-  const fatGroup = new THREE.Group();
-  fatGroup.visible = false;
-  scene.add(fatGroup);
-  const fatMaterial = new THREE.MeshStandardMaterial({ color: '#efb63e', roughness: .7, transparent: true, opacity: .8, side: THREE.DoubleSide, depthWrite: false });
-  const skin = new THREE.MeshStandardMaterial({ color: 0xcec5ae, roughness: .53, metalness: .13 });
   const floor = new THREE.Mesh(new THREE.CylinderGeometry(.47, .47, .025, 80), new THREE.MeshStandardMaterial({ color: 0x284344, roughness: .8, metalness: .3 }));
   floor.position.y = -.025;
   scene.add(floor);
@@ -47,80 +37,12 @@ export function createViewer(container) {
   scene.add(ring);
   let modelHeight = 1.75;
 
-  function ellipsoid(position, scale, material = skin) {
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 36, 28), material);
-    mesh.position.set(...position);
-    mesh.scale.set(...scale);
-    group.add(mesh);
-    return mesh;
-  }
-
-  function surface(profile, depthRatio, centerX = 0) {
-    const curve = new THREE.CatmullRomCurve3(profile.map(([r, y]) => new THREE.Vector3(r, y, 0)));
-    const points = curve.getPoints(80).map(p => new THREE.Vector2(Math.max(.0001, p.x), p.y));
-    const geo = new THREE.LatheGeometry(points, 64);
-    geo.scale(1, 1, depthRatio);
-    const mesh = new THREE.Mesh(geo, skin);
-    mesh.position.x = centerX;
-    group.add(mesh);
-    return mesh;
-  }
-
-  function limb(start, end, radii, depth = 1) {
-    const a = new THREE.Vector3(...start), b = new THREE.Vector3(...end);
-    const length = a.distanceTo(b);
-    const mesh = surface([[0, 0], [radii[0] * .85, .025 * length], [radii[0], .12 * length], [radii[1], .5 * length], [radii[2], .88 * length], [radii[2] * .8, .975 * length], [0, length]], depth);
-    mesh.position.copy(a);
-    mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.sub(a).normalize());
-    return mesh;
-  }
-
   function update(body) {
-    while (fatGroup.children.length) { const child = fatGroup.children[0]; fatGroup.remove(child); child.geometry.dispose(); }
-    while (group.children.length) {
-      const child = group.children[0];
-      group.remove(child);
-      child.geometry.dispose();
-    }
-    const d = dimensions(body), h = d.height;
-    modelHeight = h;
-    const depth = .69;
-    // Ramanujan ellipse perimeter: supplied circumference sets the corresponding torso cross-section.
-    const radius = circumference => circumference / (Math.PI * (3 * (1 + depth) - Math.sqrt((3 + depth) * (1 + 3 * depth))));
-    const chest = radius(d.chest), waist = radius(d.waist), hip = radius(d.hip);
-    const shoulder = chest * 1.1;
-    const torso = surface([[0, h * .425], [hip * .75, h * .445], [hip, h * .50], [waist, h * .595], [chest * .98, h * .70], [chest, h * .76], [shoulder * .88, h * .79], [h * .065, h * .815], [h * .042, h * .835], [h * .04, h * .875], [0, h * .88]], depth);
-    torso.userData.fatRegion = true;
-    ellipsoid([0, h * .929, 0], [h * .055, h * .071, h * .058]);
-    ellipsoid([0, h * .921, h * .051], [h * .013, h * .019, h * .012]);
-    const limbSize = Math.min(1.5, Math.max(.75, d.bulk * d.muscle));
-    for (const sign of [-1, 1]) {
-      const sx = shoulder * .95 * sign;
-      const elbow = [sign * (shoulder + h * .075), h * .604, 0];
-      const wrist = [sign * (shoulder + h * .11), h * .458, .012];
-      ellipsoid([sx, h * .771, 0], [h * .054 * limbSize, h * .058 * limbSize, h * .049 * limbSize]);
-      limb([sx, h * .776, 0], elbow, [h * .045 * limbSize, h * .043 * limbSize, h * .029 * limbSize]).userData.fatRegion = true;
-      ellipsoid(elbow, [h * .029 * limbSize, h * .032 * limbSize, h * .029 * limbSize]);
-      limb(elbow, wrist, [h * .029 * limbSize, h * .034 * limbSize, h * .018]);
-      const hand = ellipsoid([wrist[0] + sign * h * .008, h * .427, .015], [h * .022, h * .043, h * .013]);
-      hand.rotation.z = sign * .14;
-      ellipsoid([wrist[0] - sign * h * .017, h * .435, .024], [h * .012, h * .022, h * .011]);
-      const legX = sign * hip * .46;
-      const knee = [legX * 1.03, h * .257, .008];
-      const ankle = [legX * 1.08, h * .055, 0];
-      limb([legX, h * .49, 0], knee, [hip * .55, h * .068 * limbSize, h * .041 * limbSize], .97).userData.fatRegion = true;
-      ellipsoid(knee, [h * .039 * limbSize, h * .042 * limbSize, h * .041 * limbSize]);
-      limb(knee, ankle, [h * .039 * limbSize, h * .046 * limbSize, h * .023], 1.04);
-      ellipsoid([ankle[0], h * .028, h * .032], [h * .032, h * .027, h * .072]);
-    }
-    for (const mesh of group.children.filter(child => child.userData.fatRegion)) {
-      const fat = new THREE.Mesh(fatShellGeometry(mesh.geometry, body.fat), fatMaterial);
-      fat.position.copy(mesh.position); fat.quaternion.copy(mesh.quaternion); fat.scale.copy(mesh.scale);
-      fatGroup.add(fat);
-    }
-    floor.scale.setScalar(h / 1.75);
-    ring.scale.setScalar(h / 1.75);
-    atlas.setHeight(h);
+    modelHeight = body.height / 100;
+    floor.scale.setScalar(modelHeight / 1.75);
+    ring.scale.setScalar(modelHeight / 1.75);
+    atlas.updateBody(body);
+    atlas.setHeight(modelHeight);
     setView('front');
   }
   function setView(view) {
@@ -142,12 +64,9 @@ export function createViewer(container) {
     async setLayers(layers, onProgress) {
       await atlas.show(layers, modelHeight, onProgress);
       atlas.setHeight(modelHeight);
-      group.visible = layers.includes('body');
-      fatGroup.visible = layers.includes('fat');
-      skin.transparent = layers.length > 1; skin.opacity = layers.length > 1 ? .18 : 1; skin.depthWrite = layers.length === 1;
     },
     rotate: enabled => { controls.autoRotate = enabled; },
-    wireframe: enabled => { skin.wireframe = enabled; fatMaterial.wireframe = enabled; atlas.wireframe(enabled); },
+    wireframe: enabled => { atlas.wireframe(enabled); },
     capture: () => { renderer.render(scene, camera); return renderer.domElement; },
   };
 }

@@ -7,7 +7,7 @@ import { Box3, Vector3 } from 'three';
 import { layerAssets, atlasTransform, visibleAnatomyType } from '../src/anatomy.js';
 
 test('anatomy modes isolate bones, muscles and organs', () => {
-  assert.deepEqual(layerAssets('body'), []);
+  assert.deepEqual(layerAssets('body'), ['anatomy', 'surface']);
   assert.deepEqual(layerAssets('combined'), ['anatomy']);
   assert.equal(visibleAnatomyType('skeleton', 'bone'), true);
   assert.equal(visibleAnatomyType('skeleton', 'muscle'), false);
@@ -17,8 +17,8 @@ test('anatomy modes isolate bones, muscles and organs', () => {
   assert.equal(visibleAnatomyType('combined', 'muscle'), true);
   assert.equal(visibleAnatomyType('organs', 'bone'), false);
   assert.deepEqual(layerAssets('organs'), ['digestive', 'respiratory']);
-  assert.deepEqual(layerAssets(['skeleton', 'muscles', 'fat', 'organs']), ['anatomy', 'digestive', 'respiratory']);
-  assert.deepEqual(layerAssets(['fat']), []);
+  assert.deepEqual(layerAssets(['skeleton', 'muscles', 'fat', 'organs']), ['anatomy', 'surface', 'digestive', 'respiratory']);
+  assert.deepEqual(layerAssets(['fat']), ['anatomy', 'surface']);
   assert.deepEqual(layerAssets([]), []);
   assert.equal(visibleAnatomyType(['skeleton', 'fat'], 'bone'), true);
   assert.equal(visibleAnatomyType(['skeleton', 'fat'], 'muscle'), false);

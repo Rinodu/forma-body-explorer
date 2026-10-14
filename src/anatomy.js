@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { createBodyLayers } from './fat.js';
 
 export const anatomyLayers = Object.freeze({
-  body: [],
-  fat: [],
+  body: ['anatomy', 'surface'],
+  fat: ['anatomy', 'surface'],
   skeleton: ['anatomy'],
   muscles: ['anatomy'],
   combined: ['anatomy'],
@@ -35,6 +36,7 @@ export function createAnatomyAtlas(scene) {
   const models = new Map();
   const referenceBoxes = new Map();
   let wireframe = false;
+  let bodyData, bodyLayers;
 
   function load(name, onProgress) {
     if (!cache.has(name)) {
@@ -48,10 +50,17 @@ export function createAnatomyAtlas(scene) {
           referenceBoxes.set(name, new THREE.Box3().setFromObject(model));
         }
         if (name === 'organ-reference') referenceBoxes.set('organs', new THREE.Box3().setFromObject(model));
+        if (name === 'surface') {
+          const source = gltf.scene.children.find(node => node.isMesh);
+          bodyLayers = createBodyLayers(source.geometry);
+          model.clear(); model.add(bodyLayers.group);
+          bodyLayers.group.rotation.x = Math.PI / 2;
+        }
         model.visible = false;
         const materials = new Map();
         model.traverse(node => {
           if (!node.isMesh) return;
+          if (name === 'surface') { node.material.wireframe = wireframe; return; }
           const styled = (Array.isArray(node.material) ? node.material : [node.material]).map(source => {
             const key = `${source.uuid}:${node.userData.type ?? 'organ'}`;
             if (materials.has(key)) return materials.get(key);
@@ -86,11 +95,18 @@ export function createAnatomyAtlas(scene) {
         model.visible = assets.includes(name);
         if (name === 'anatomy') model.traverse(node => { if (node.isMesh) node.visible = visibleAnatomyType(layer, node.userData.type); });
       }
+      if (bodyData) this.updateBody(bodyData);
+      bodyLayers?.show([layer].flat());
       this.setHeight(height);
+    },
+    updateBody(body) {
+      bodyData = body;
+      const reference = referenceBoxes.get('anatomy');
+      if (bodyLayers && reference) bodyLayers.update(body, reference.max.y - reference.min.y);
     },
     setHeight(height) {
       for (const [name, model] of models) {
-        const box = referenceBoxes.get(name === 'anatomy' ? name : 'organs');
+        const box = referenceBoxes.get(['anatomy', 'surface'].includes(name) ? 'anatomy' : 'organs');
         if (!box) continue;
         const transform = atlasTransform(box, height);
         model.scale.setScalar(transform.scale);

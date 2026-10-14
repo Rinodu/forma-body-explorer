@@ -19,7 +19,7 @@ const layerCheckboxes = () => [...document.querySelectorAll('#anatomy-layers inp
 function updateLayerCaption() {
   const estimated = activeLayers.some(layer => ['fat', 'body'].includes(layer));
   $('#model-label').textContent = activeLayers.length ? activeLayers.map(layer => layerNames[layer]).join(' + ').toUpperCase() : 'TIDAK ADA LAPISAN DIPILIH';
-  $('.view-caption small').textContent = estimated ? 'Lemak / siluet skematis · bukan peta jaringan pribadi' : 'Atlas referensi · bukan anatomi pribadi';
+  $('.view-caption small').textContent = estimated ? 'Kulit & lemak mengikuti satu permukaan · bentuk pribadi tetap estimasi' : 'Atlas referensi · bukan anatomi pribadi';
   $('.estimate').textContent = estimated ? 'Ilustrasi estimasi' : 'Atlas referensi';
 }
 
@@ -36,7 +36,7 @@ async function switchLayer() {
       $('#anatomy-status').textContent = `Memuat ${ { anatomy: 'tulang & otot', 'organ-reference': 'referensi organ', digestive: 'pencernaan', respiratory: 'pernapasan' }[name]}…${percent == null ? '' : ` ${percent}%`}`;
     });
     activeLayers = requested;
-    $('#anatomy-status').textContent = !requested.length ? 'Semua lapisan disembunyikan. Centang lapisan untuk menampilkannya.' : requested.includes('fat') ? 'Kuning: ilustrasi lemak bawah kulit pada badan, lengan atas, dan paha. Ketebalan skematis mengikuti % lemak; bukan peta lemak terukur atau lemak visceral. Posisi antar-model belum dikalibrasi.' : requested.includes('body') ? 'Siluet estimasi mengikuti komposisi. Atlas tulang, otot, dan organ tetap referensi; posisi antar-model belum dikalibrasi.' : 'Atlas referensi · skala tinggi input. Organ hanya pencernaan & pernapasan; gabungan antar-atlas belum dikalibrasi.';
+    $('#anatomy-status').textContent = !requested.length ? 'Semua lapisan disembunyikan. Centang lapisan untuk menampilkannya.' : requested.includes('fat') ? 'Kuning: ilustrasi lemak mengikuti permukaan kulit yang sama, bukan potongan terpisah. Ketebalan mengikuti % lemak; distribusi regional masih estimasi, bukan lemak visceral.' : requested.includes('body') ? 'Permukaan tubuh BodyParts3D memakai acuan posisi dan skala yang sama dengan tulang & otot. Penyesuaian komposisi tetap estimasi; bukan body scan pribadi.' : 'Atlas referensi · skala tinggi input. Organ hanya pencernaan & pernapasan; gabungan antar-atlas belum dikalibrasi.';
   } catch (error) {
     layerCheckboxes().forEach(input => { input.checked = activeLayers.includes(input.value); });
     await viewer.setLayers(activeLayers);
@@ -128,7 +128,7 @@ $('#capture').addEventListener('click', () => {
     context.font = `${Math.max(14, canvas.width / 45)}px sans-serif`; context.fillStyle = '#cddbd4';
     context.font = `${Math.max(9, canvas.width / 65)}px sans-serif`;
     context.fillText(`FORMA · ${activeLayers.map(layer => layerNames[layer]).join(' + ')} · ESTIMASI / REFERENSI`, 20, canvas.height - 36);
-    if (activeLayers.some(layer => ['skeleton', 'muscles', 'organs'].includes(layer))) {
+    if (activeLayers.length) {
       context.font = `${Math.max(10, canvas.width / 60)}px sans-serif`;
       context.fillText('BodyParts3D / Z-Anatomy · Kinetra / Vanatome', 20, canvas.height - 16);
       context.font = `${Math.max(8, canvas.width / 75)}px sans-serif`;

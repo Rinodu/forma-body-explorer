@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { demo, validateBody, composition, parseReport, dimensions } from '../src/data.js';
+import { demo, validateBody, composition, parseReport } from '../src/data.js';
 
 test('composition conserves total mass and computes BMI', () => {
   const data = validateBody(demo), stats = composition(data);
@@ -25,13 +25,4 @@ test('OCR parses decimal commas, adjacent labels and inferred height without inv
 });
 test('explicit height wins and missing fields remain missing', () => {
   assert.deepEqual(parseReport('Weight 80 kg\nHeight 180 cm'), { weight: 80, height: 180 });
-});
-test('input circumferences override estimates and weight/fat affect silhouette', () => {
-  assert.equal(dimensions({ ...demo, waist: 88 }).waist, .88);
-  assert.ok(dimensions({ ...demo, weight: 100 }).waist > dimensions(demo).waist);
-  assert.ok(dimensions({ ...demo, fat: 35 }).waist > dimensions(demo).waist);
-  for (const weight of [25, 350]) for (const fat of [3, 65]) {
-    const dims = dimensions({ ...demo, weight, fat });
-    assert.ok(Object.values(dims).every(n => Number.isFinite(n) && n > 0));
-  }
 });

@@ -39,3 +39,19 @@ Upstream Z-Anatomy: https://github.com/Z-Anatomy/Models-of-human-anatomy
 Preserved source notices: [Z-Anatomy license and credits](Z-ANATOMY-LICENSE.txt), [Vanatome asset notice](VANATOME-ASSET-LICENSE.md).
 
 The atlas is a reference adult anatomy, not a reconstruction of the visitor. Organ view is limited to the supplied digestive and respiratory systems.
+
+## Connected body surface
+
+`surface.glb` is a Forma adaptation of **BodyParts3D / DBCLS**, CC BY-SA 2.1 Japan, skin element **FJ2810 / BP22617 / FMA7163**, compatibility version 4.3.
+
+Source distributor: Oliver Case's verified BodyParts3D mesh set, pinned at `fd527e6f4daf732fd814314d9257df5877b844bc`:
+
+https://github.com/olivercase/body_parts_3d_api/blob/fd527e6f4daf732fd814314d9257df5877b844bc/meshes/FJ2810_BP22617_FMA7163_Skin.obj
+
+Actual OBJ download: https://media.githubusercontent.com/media/olivercase/body_parts_3d_api/fd527e6f4daf732fd814314d9257df5877b844bc/meshes/FJ2810_BP22617_FMA7163_Skin.obj
+
+Source SHA-256: `b96705b91fb861e4f63ca116c5fdc2c79d772083e9595ba1c0122a86ff2f7282` (14,465,138 bytes).
+
+Forma retained the largest connected outward-facing surface (109,183 triangles, 54,949 vertices), removed the internal skin surface and small fragments, applied the same BodyExplorer-to-Kinetra affine fit as the atlas, computed smooth normals and converted to GLB. `scripts/build-surface.mjs` reproduces this transformation. Display-time body morphs and the attached fat illustration are derivative visualizations under the same **CC BY-SA 2.1 Japan** model license. Fat thickness and morphs are heuristic and not measured anatomy.
+
+The source dataset license is distinct from the distributor's MIT software license. BodyParts3D / DBCLS attribution and ShareAlike terms apply to the mesh and derivatives. License: https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en

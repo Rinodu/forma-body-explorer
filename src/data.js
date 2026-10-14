@@ -53,15 +53,3 @@ export function parseReport(text) {
   return Object.fromEntries(Object.entries(result).filter(([, value]) => value !== undefined));
 }
 
-export function dimensions(body) {
-  const height = body.height / 100;
-  const { bmi } = composition(body);
-  const fat = (body.fat - 20) / 100;
-  const bulk = Math.sqrt(bmi / 24);
-  const muscle = body.muscle == null ? 1 : Math.max(.85, Math.min(1.2, Math.sqrt(body.muscle / (body.weight * .4))));
-  // shortcut: heuristic adult silhouettes, replace with a validated statistical body model before claiming individual accuracy.
-  const chest = body.chest ? body.chest / 100 : height * .53 * bulk * (body.shape === 'masculine' ? 1.04 : 1);
-  const waist = body.waist ? body.waist / 100 : height * .43 * bulk * (1 + fat * 1.5);
-  const hip = body.hip ? body.hip / 100 : height * .54 * bulk * (body.shape === 'feminine' ? 1.09 : 1);
-  return { height, chest, waist, hip, bulk, muscle };
-}
