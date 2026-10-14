@@ -19,7 +19,7 @@ const layerCheckboxes = () => [...document.querySelectorAll('#anatomy-layers inp
 function updateLayerCaption() {
   const estimated = activeLayers.some(layer => ['fat', 'body', 'visceral'].includes(layer));
   $('#model-label').textContent = activeLayers.length ? activeLayers.map(layer => layerNames[layer]).join(' + ').toUpperCase() : 'TIDAK ADA LAPISAN DIPILIH';
-  $('.view-caption small').textContent = estimated ? 'Kulit & lemak mengikuti satu permukaan · bentuk pribadi tetap estimasi' : 'Atlas referensi · bukan anatomi pribadi';
+  $('.view-caption small').textContent = activeLayers.includes('visceral') ? 'Visceral: acuan mesenterium · bukan segmentasi lemak pribadi' : estimated ? 'Kulit & lemak mengikuti satu permukaan · bentuk pribadi tetap estimasi' : 'Atlas referensi · bukan anatomi pribadi';
   $('.estimate').textContent = estimated ? 'Ilustrasi estimasi' : 'Atlas referensi';
 }
 
